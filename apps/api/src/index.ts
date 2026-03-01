@@ -42,7 +42,10 @@ const app = express();
 
 app.use(
   cors({
-    origin: (origin, callback) => {
+    origin: (
+      origin: string | undefined,
+      callback: (error: Error | null, allow?: boolean) => void
+    ) => {
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
         return;
@@ -69,7 +72,7 @@ const createClassSchema = z.object({
   description: z.string().min(10).max(2000),
   instructorName: z.string().min(2).max(120),
   location: z.string().min(2).max(120),
-  startsAt: z.string().refine((value) => !Number.isNaN(Date.parse(value)), {
+  startsAt: z.string().refine((value: string) => !Number.isNaN(Date.parse(value)), {
     message: "startsAt must be an ISO 8601 date-time string"
   }),
   capacity: z.number().int().min(1).max(1000)
@@ -178,11 +181,11 @@ async function upsertUserRole(userId: string, role: UserRole) {
   return error;
 }
 
-app.get("/health", (_request, response) => {
+app.get("/health", (_request: Request, response: Response) => {
   response.json({ status: "ok" });
 });
 
-app.post("/api/auth/signup", async (request, response) => {
+app.post("/api/auth/signup", async (request: Request, response: Response) => {
   const parsed = signupSchema.safeParse(request.body);
 
   if (!parsed.success) {
@@ -220,7 +223,7 @@ app.post("/api/auth/signup", async (request, response) => {
   });
 });
 
-app.post("/api/auth/login", async (request, response) => {
+app.post("/api/auth/login", async (request: Request, response: Response) => {
   const parsed = loginSchema.safeParse(request.body);
 
   if (!parsed.success) {
@@ -253,7 +256,7 @@ app.post("/api/auth/login", async (request, response) => {
   });
 });
 
-app.get("/api/auth/me", async (request, response) => {
+app.get("/api/auth/me", async (request: Request, response: Response) => {
   const user = await requireUser(request, response);
   if (!user) {
     return;
@@ -265,7 +268,7 @@ app.get("/api/auth/me", async (request, response) => {
   });
 });
 
-app.get("/api/admin/classes", async (request, response) => {
+app.get("/api/admin/classes", async (request: Request, response: Response) => {
   const user = await requireUser(request, response, ["admin"]);
   if (!user) {
     return;
@@ -284,7 +287,7 @@ app.get("/api/admin/classes", async (request, response) => {
   response.json(data ?? []);
 });
 
-app.post("/api/admin/classes", async (request, response) => {
+app.post("/api/admin/classes", async (request: Request, response: Response) => {
   const user = await requireUser(request, response, ["admin"]);
   if (!user) {
     return;
@@ -324,7 +327,7 @@ app.post("/api/admin/classes", async (request, response) => {
   response.status(201).json(data);
 });
 
-app.get("/api/member/classes", async (request, response) => {
+app.get("/api/member/classes", async (request: Request, response: Response) => {
   const user = await requireUser(request, response, ["member"]);
   if (!user) {
     return;
@@ -350,7 +353,9 @@ app.get("/api/member/classes", async (request, response) => {
     return;
   }
 
-  const registeredClassIds = new Set((registrations ?? []).map((row) => row.class_id));
+  const registeredClassIds = new Set(
+    (registrations ?? []).map((row: { class_id: string }) => row.class_id)
+  );
 
   const { data: allRegistrations, error: allRegistrationsError } = await dbClient
     .from("class_registrations")
@@ -376,7 +381,7 @@ app.get("/api/member/classes", async (request, response) => {
   response.json(responsePayload);
 });
 
-app.post("/api/member/registrations", async (request, response) => {
+app.post("/api/member/registrations", async (request: Request, response: Response) => {
   const user = await requireUser(request, response, ["member"]);
   if (!user) {
     return;
